@@ -1,0 +1,15 @@
+[package]
+name = "personal-project"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4"
+mongodb = "3.1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+futures-util = "0.3"
+dotenvy = "0.15"
+utoipa = { version = "5.3.0", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["actix-web"] }
