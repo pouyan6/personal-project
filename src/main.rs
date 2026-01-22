@@ -1,9 +1,10 @@
 mod model;
 mod handlers;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{middleware, web, App, HttpServer};
 use mongodb::Client;
 use std::env;
+use actix_web::dev::Service;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -37,6 +38,14 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(middleware::Logger::default())
+            .wrap_fn(|req,srv| { // custom middleware example
+                req.headers().get("secret-token");
+                let fut = srv.call(req);
+                async {
+                    let res = fut.await?;
+                    Ok(res) }
+            })
             .app_data(web::Data::new(client.clone()))
             .app_data(web::Data::new(db_name.clone()))
             .service(

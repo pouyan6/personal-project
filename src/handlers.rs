@@ -1,6 +1,7 @@
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use mongodb::{Client, Collection, options::FindOneAndUpdateOptions, options::ReturnDocument};
 use crate::model::Soldier;
+use validator::Validate;
 use futures_util::stream::StreamExt;
 use mongodb::bson::{doc, Document};
 
@@ -38,8 +39,10 @@ async fn get_next_sequence(client: &Client, db_name: &str, sequence_name: &str) 
     )
 )]
 #[get("/soldiers")]
-pub async fn get_soldiers(client: web::Data<Client>, db_name: web::Data<String>) -> impl Responder {
+pub async fn get_soldiers(client: web::Data<Client>, db_name: web::Data<String>, req: HttpRequest) -> impl Responder {
     let collection: Collection<Soldier> = client.database(db_name.get_ref()).collection("soldiers");
+    let headers = req.headers();
+    headers.get("Accept").unwrap();
     let mut cursor = match collection.find(doc! {}).await {
         Ok(cursor) => cursor,
         Err(err) => {
@@ -68,11 +71,16 @@ pub async fn get_soldiers(client: web::Data<Client>, db_name: web::Data<String>)
     request_body = Soldier,
     responses(
         (status = 201, description = "Soldier created successfully"),
+        (status = 400, description = "Bad request, validation failed"),
         (status = 500, description = "Internal server error")
     )
 )]
 #[post("/soldiers")]
 pub async fn add_soldier(client: web::Data<Client>, db_name: web::Data<String>, soldier: web::Json<Soldier>) -> impl Responder {
+    if let Err(err) = soldier.validate() {
+        return HttpResponse::BadRequest().body(err.to_string());
+    }
+
     let mut new_soldier = soldier.into_inner();
     
     // Auto-increment logic
